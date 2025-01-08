@@ -33,6 +33,9 @@ K_I = 100;
 D = 1;
 GAMMA_1 = 1e1;
 GAMMA_2 = 1e1;
+c1 = 0.03;
+c2 = 0.99;
+c3 = 2;
 
 % optimization parameters
 QUADPROGOPTIONS = optimoptions(@quadprog,'Display','off');
@@ -44,14 +47,14 @@ gamma_x = @(s) 1e2*s^3;
 robot_dynamics = @(x,u) [[zeros(2) eye(2);...
     zeros(2) -SIGMA*eye(2)]*x + [zeros(2);eye(2)]*u; ...
     x(3:4)];
-uh = @(t,uh_prev) [-1; 0]*0.03 + uh_prev*0.99;
+uh = @(t,uh_prev) [-1; 0]*c1 + uh_prev*c2;
 uh_dot = @(t,uh_prev) (uh(t,uh_prev)-uh_prev)/DT;
 u_hat = @(x,t,uh_prev) -K_P*x(1:2)-K_D*x(3:4) + uh(t,uh_prev);
 phi = @(x,u,t,uh_prev) -K_P*x(3:4)-K_D*(-SIGMA*x(3:4)+u)+K_I*(u_hat(x,t,uh_prev)-u)+uh_dot(t,uh_prev);
 Au = @(x) x(3:4)';
-bu = @(x,u,t,uh_prev) -(1+3*SIGMA^2)*norm(x(3:4))^2+2*SIGMA*x(1:2)'*x(3:4)-(2*x(1:2)'-3*SIGMA*x(3:4)')*u-x(3:4)'*phi(x,u,t,uh_dot(t,uh_prev))+gamma_u(2*SIGMA*norm(x(3:4))^2-2*x(1:2)'*x(3:4)-x(3:4)'*u);
-Ax = @(x) -2*x(1:2)';
-bx = @(x,u,t,uh_prev) (2*GAMMA_1*GAMMA_2*x(1:2)'+2*(GAMMA_1+GAMMA_2-SIGMA)*x(3:4)'+2*u')*x(3:4)+(4*x(3:4)'+2*(GAMMA_1+GAMMA_2-SIGMA)*x(1:2)')*(-SIGMA*x(3:4)+u)+2*x(1:2)'*phi(x,u,t,uh_prev)+gamma_x(GAMMA_1*GAMMA_2*norm(x(1:2))^2+2*norm(x(3:4))^2+2*(GAMMA_1+GAMMA_2-SIGMA)*x(1:2)'*x(3:4)+2*x(1:2)'*u-GAMMA_1*GAMMA_2*D^2);
+bu = @(x,u,t,uh_prev) -(1+(c3+1)*SIGMA^2)*norm(x(3:4))^2+c3*SIGMA*x(1:2)'*x(3:4)-(c3*x(1:2)'-(c3+1)*SIGMA*x(3:4)')*u-x(3:4)'*phi(x,u,t,uh_dot(t,uh_prev))+gamma_u(c3*SIGMA*norm(x(3:4))^2-c3*x(1:2)'*x(3:4)-x(3:4)'*u);
+Ax = @(x) -c3*x(1:2)';
+bx = @(x,u,t,uh_prev) (c3*GAMMA_1*GAMMA_2*x(1:2)'+c3*(GAMMA_1+GAMMA_2-SIGMA)*x(3:4)'+c3*u')*x(3:4)+(c3*c3*x(3:4)'+c3*(GAMMA_1+GAMMA_2-SIGMA)*x(1:2)')*(-SIGMA*x(3:4)+u)+c3*x(1:2)'*phi(x,u,t,uh_prev)+gamma_x(GAMMA_1*GAMMA_2*norm(x(1:2))^2+c3*norm(x(3:4))^2+c3*(GAMMA_1+GAMMA_2-SIGMA)*x(1:2)'*x(3:4)+c3*x(1:2)'*u-GAMMA_1*GAMMA_2*D^2);
 V = @(x) norm(x)^2;
 
 % initialize system variables
@@ -102,7 +105,7 @@ for t = 0 : DT : T
     % log state and input trajectories, and power and safety margin
     robot_state_trajectory(:,n) = x;
     robot_input_trajectory(:,n) = u;
-    power_margin(n) = u'*y - 2*x'*x_dot;
+    power_margin(n) = u'*y - c3*x'*x_dot;
     safety_margin(n) = norm(x(1:2))^2-1;
     
     % dynamics simulation step
