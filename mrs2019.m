@@ -18,6 +18,7 @@ alpha = @(x) x; % class K function
 % simulation parameters
 T_MAX = 1e3;
 DT = 0.033; % simulation time step
+iter_lat = 11;
 
 % graph Laplacian
 L = [3 -1 -1 -1 0 -1 ; ...
@@ -53,14 +54,14 @@ AXIS_LIM = 2;
 ROBOT_W = 0.1;
 ROBOT_L = 0.1;
 robots = cell(1,N);
-for i = 1 : N
+
     for i = 1 : N
         robots{i} = Unicycle('width', ROBOT_W, ...
             'length', ROBOT_L, ...
             'initialState', [-AXIS_LIM/2+AXIS_LIM*rand(2,1);2*pi*rand()], ...
             'simulationTimeStep', DT);
     end
-end
+    
 s = Swarm('robots', robots, 'L', L);
 x = s.getPoses();
 
@@ -68,7 +69,7 @@ x = s.getPoses();
 q = cell(N,N);
 for i = 1 : N
     for j = i+1 : N
-        delay = randi(11)-1; % random delay between 0 and 10 iterations
+        delay = randi(iter_lat)-1; % random delay between 0 and iter_lat-1 iterations
         q{i,j} = FixedLengthQueue(1+delay);
         for n = 1 : 1+delay
             q{i,j}.add([x(1:2,j);zeros(2,1)]);
@@ -78,7 +79,7 @@ end
 for j = 1 : N
     for i = j+1 : N
         % delay = q{j,i}.l-1; % symmetric delays
-        delay = randi(11)-1; % non-symmetric delays: different delays in exchanging position information for i->j and j->i
+        delay = randi(iter_lat)-1; % non-symmetric delays: different delays in exchanging position information for i->j and j->i
         q{i,j} = FixedLengthQueue(1+delay);
         for n = 1 : 1+delay
             q{i,j}.add([x(1:2,j);zeros(2,1)]);
